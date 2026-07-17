@@ -1,0 +1,16 @@
+node_modules
+.nuxt
+.output
+.data
+dist
+data/
+models/
+tools/
+.venv/
+.cache/
+__pycache__/
+*.pyc
+*.log
+.DS_Store
+.env
+.claude/

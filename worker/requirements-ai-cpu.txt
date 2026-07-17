@@ -1,0 +1,8 @@
+# Pila de IA SIN CUDA (CPU + DirectML). Para equipos sin GPU NVIDIA:
+#   pip install -r backend/requirements-ai-cpu.txt --extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.4                 # rueda CPU (warp del modo rápido)
+numpy
+opencv-python
+scenedetect[opencv]>=0.6
+onnxruntime-directml       # profundidad ONNX en GPU DX12 (AMD/Intel iGPU) o CPU
+huggingface_hub            # descarga de los modelos ONNX

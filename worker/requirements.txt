@@ -1,0 +1,9 @@
+# Base del worker Python del Convertidor 3D.
+# Lo minimo para importar el pipeline (runner) y detectar la GPU. El servidor
+# ya NO es Python (lo es Nitro/Node), asi que aqui no van fastapi/uvicorn.
+#
+# La conversion REAL necesita ademas la pila de IA; instala uno de estos niveles:
+#   scripts\setup.ps1 -AI    (GPU NVIDIA / CUDA)  -> worker\requirements-ai.txt
+#   scripts\setup.ps1 -DML   (sin NVIDIA)         -> worker\requirements-ai-cpu.txt
+numpy
+nvidia-ml-py>=12.0

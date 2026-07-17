@@ -1,0 +1,22 @@
+{
+  "name": "nuxt-convertidor-3d",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "node .output/server/index.mjs",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nuxt/ui": "^4.10.0",
+    "@pinia/nuxt": "^1.0.1",
+    "nuxt": "^4.4.8",
+    "pathe": "^2.0.3",
+    "pinia": "^4.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
