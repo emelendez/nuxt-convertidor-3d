@@ -8,13 +8,19 @@ from pathlib import Path
 APP_NAME = "Convertidor 3D"
 APP_VERSION = "0.1.0"
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = Path(__file__).resolve().parent.parent   # = worker/
+# Raiz del PROYECTO (worker/..): models/, data/ y tools/ viven ahi en este
+# repo (fork 2026-07-18; en el proyecto original backend/ colgaba de la raiz).
+# Node siempre inyecta CONVERTIDOR3D_MODELS/DATA al spawnear el worker; estos
+# defaults solo importan al ejecutar detect.py/cli.py A MANO, y antes
+# apuntaban a worker/models y worker/tools (inexistentes -> sondeo enganoso).
+PROJECT_ROOT = ROOT_DIR.parent
 FRONTEND_DIR = ROOT_DIR / "frontend"
 # Modelos y datos pueden vivir en otro disco (p. ej. D:) si C: anda justo:
 #   setx CONVERTIDOR3D_MODELS "D:\convertidor-3d\models"
 #   setx CONVERTIDOR3D_DATA   "D:\convertidor-3d\data"
-MODELS_DIR = Path(os.environ.get("CONVERTIDOR3D_MODELS", ROOT_DIR / "models"))
-DATA_DIR = Path(os.environ.get("CONVERTIDOR3D_DATA", ROOT_DIR / "data"))
+MODELS_DIR = Path(os.environ.get("CONVERTIDOR3D_MODELS", PROJECT_ROOT / "models"))
+DATA_DIR = Path(os.environ.get("CONVERTIDOR3D_DATA", PROJECT_ROOT / "data"))
 JOBS_DIR = DATA_DIR / "jobs"
 CALIBRATION_FILE = DATA_DIR / "calibration.json"
 SETTINGS_FILE = DATA_DIR / "settings.json"
@@ -23,7 +29,7 @@ DEFAULT_OUTPUT_DIR = Path.home() / "Videos" / "Convertidor3D"
 
 # FFmpeg embebido (tools/ffmpeg/bin): viaja con la carpeta al copiarla.
 # Se antepone al PATH del proceso para que shutil.which() lo encuentre.
-_FFMPEG_BIN = ROOT_DIR / "tools" / "ffmpeg" / "bin"
+_FFMPEG_BIN = PROJECT_ROOT / "tools" / "ffmpeg" / "bin"
 if _FFMPEG_BIN.is_dir():
     os.environ["PATH"] = str(_FFMPEG_BIN) + os.pathsep + os.environ.get("PATH", "")
 
