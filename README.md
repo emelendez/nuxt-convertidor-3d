@@ -17,6 +17,11 @@ compatible con Side-by-Side, usando estimación de profundidad por IA.
   motor en `worker/engines/<id>/` que la app descubre, sondea, estima e instala por sí
   sola. Añadir un motor nuevo = soltar una carpeta con su `manifest.json` (ver
   [docs/adr-motores.md](docs/adr-motores.md)).
+- **Perfiles de renderizado:** un selector arriba en la interfaz aplica preconfiguraciones
+  que fijan de una vez todos los parámetros del pipeline según tu pantalla (p. ej.
+  `TV 3D pasiva FPR`: Half-SBS 4K, relleno de desoclusiones, suavizado temporal y nitidez
+  horizontal). Un perfil es un simple `profiles/<id>.json`; el panel "Ajustes avanzados"
+  permite afinar cada parámetro.
 - Profundidad con **Video Depth Anything** (CUDA) o **Depth Anything V2 ONNX**
   (DirectML/CPU, con estabilizador temporal anti-parpadeo) según el hardware.
 - Tres modos de estéreo: **rápido** (warp DIBR), **HQ-lite** (warp + relleno Telea de

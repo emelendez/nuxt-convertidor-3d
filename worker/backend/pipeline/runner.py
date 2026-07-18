@@ -258,7 +258,9 @@ class RunnerContext:
                     t1 = time.monotonic()
                     left, right = stereo.process(frames, depths, ctx)
                     for l, r in zip(left, right):
-                        enc.write(compose_sbs(l, r, self.cfg["output"]))
+                        enc.write(compose_sbs(l, r, self.cfg["output"],
+                                              sharpen=float(self.cfg.get("sharpen", 0.0)),
+                                              sharpen_radius=float(self.cfg.get("sharpen_radius", 1.0))))
                     n = len(frames)
                     stage_times["stereo"].append(
                         n / max(time.monotonic() - t1, 1e-3))

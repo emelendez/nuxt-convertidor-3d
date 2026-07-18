@@ -26,9 +26,35 @@ def _resize(img: np.ndarray, w: int, h: int) -> np.ndarray:
         return img[ys][:, xs]
 
 
-def compose_sbs(left: np.ndarray, right: np.ndarray, output: str) -> np.ndarray:
-    """(H,W,3) + (H,W,3) → frame SBS uint8 según la geometría de salida."""
+def _sharpen_h(img: np.ndarray, amount: float, radius: float) -> np.ndarray:
+    """Unsharp mask ANISOTROPICO (solo horizontal): realza el detalle horizontal
+    sin tocar el vertical. Compensa la perdida de resolucion horizontal del
+    Half-SBS (cada ojo se comprime a la mitad de ancho y la TV lo reescala
+    despues). El desenfoque usa un kernel gaussiano de altura 1 (kx x 1), asi
+    que la nitidez no afecta a las lineas horizontales del panel FPR. No-op sin
+    OpenCV."""
+    if amount <= 0:
+        return img
+    try:
+        import cv2
+    except ImportError:
+        return img
+    sigma = max(radius, 0.1)
+    k = max(3, int(sigma * 6) | 1)                       # tamano impar ~6 sigma
+    blur = cv2.GaussianBlur(img, (k, 1), sigmaX=sigma, sigmaY=0)
+    return cv2.addWeighted(img, 1.0 + amount, blur, -amount, 0)
+
+
+def compose_sbs(left: np.ndarray, right: np.ndarray, output: str,
+                sharpen: float = 0.0, sharpen_radius: float = 1.0) -> np.ndarray:
+    """(H,W,3) + (H,W,3) → frame SBS uint8 según la geometría de salida.
+
+    Con sharpen>0 aplica nitidez horizontal a cada ojo DESPUES del reescalado
+    por-ojo (que es donde se pierde la resolucion horizontal)."""
     total_w, total_h, eye_w = OUTPUT_GEOMETRY[output]
     l = _resize(left, eye_w, total_h)
     r = _resize(right, eye_w, total_h)
+    if sharpen > 0:
+        l = _sharpen_h(l, sharpen, sharpen_radius)
+        r = _sharpen_h(r, sharpen, sharpen_radius)
     return np.concatenate([l, r], axis=1)

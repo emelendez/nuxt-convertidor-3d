@@ -10,6 +10,25 @@ export interface Cfg {
   divergence: number
   convergence: number
   tonemap: boolean
+  // Opcionales: los precarga un perfil de renderizado y/o el panel "Ajustes
+  // avanzados". Sus defaults igualan a los del worker, asi que estar presentes
+  // con estos valores no cambia el comportamiento. Viajan verbatim al worker.
+  profile?: string
+  engines?: { depth?: string, stereo?: string }
+  sharpen?: number
+  sharpen_radius?: number
+  depth_smooth?: boolean
+  depth_smooth_strength?: number
+  telea_radius?: number
+  inpaint_downscale?: boolean
+  vram_ok?: boolean
+}
+
+export interface Profile {
+  id: string
+  label: string
+  description?: string
+  cfg: Partial<Cfg>
 }
 
 export const useAppStore = defineStore('app', {
@@ -27,7 +46,18 @@ export const useAppStore = defineStore('app', {
       divergence: 2.0,
       convergence: 0.5,
       tonemap: true,
+      // defaults de knobs avanzados (identicos a los del worker)
+      profile: 'default',
+      sharpen: 0.0,
+      sharpen_radius: 1.0,
+      depth_smooth: true,
+      depth_smooth_strength: 0.6,
+      telea_radius: 3,
+      inpaint_downscale: true,
+      vram_ok: true,
     } as Cfg,
+    profiles: [] as Profile[],
+    selectedProfile: 'default',
     demo: { start_mode: 'fixed', start_s: 600, duration_s: 60 },
     jobs: {} as Record<string, any>,
     outputFiles: [] as any[],
@@ -42,6 +72,17 @@ export const useAppStore = defineStore('app', {
   },
   actions: {
     unlockStep(n: number) { this.maxStep = Math.max(this.maxStep, n) },
+    // Carga los parametros de un perfil de renderizado en el cfg activo.
+    applyProfile(p: Profile) {
+      if (!p) return
+      Object.assign(this.cfg, structuredClone(toRaw(p.cfg)))
+      this.cfg.profile = p.id
+      this.selectedProfile = p.id
+    },
+    selectProfileById(id: string) {
+      const p = this.profiles.find(x => x.id === id)
+      if (p) this.applyProfile(p)
+    },
     setProbe(p: any) { this.probe = p; if (p) this.unlockStep(2) },
     upsertJob(job: any) { this.jobs = { ...this.jobs, [job.id]: job } },
     setJobs(list: any[]) {

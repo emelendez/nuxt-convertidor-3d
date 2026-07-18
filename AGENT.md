@@ -28,6 +28,19 @@ seleccion viaja en `cfg.engines` (la resuelve Node ANTES de hashear el
 workdir) y la UI/estimador/instalador los descubren via `detect.py` ->
 `/api/health`. Guia completa: `docs/adr-motores.md`.
 
+**Perfiles de renderizado como addons:** ficheros JSON en `profiles/<id>.json`
+= `{ id, label, description, cfg }` que preconfiguran de una vez TODOS los knobs
+del pipeline segun la TV/escenario. Node los descubre y sirve
+(`server/utils/profiles.ts` -> `GET /api/profiles`); la UI (selector arriba en
+`index.vue`) autoselecciona `default` y aplica el elegido a `store.cfg`
+(`applyProfile`). El `cfg` viaja verbatim al worker, asi que un perfil puede
+fijar cualquier campo. Para escribir un perfil: soltar un JSON en `profiles/`
+(el `id` debe igualar el nombre de fichero). El panel "Ajustes avanzados"
+(plegable en `config.vue`) expone y permite afinar esos knobs. Knob global de
+post-proceso `sharpen` (+`sharpen_radius`): unsharp ANISOTROPICO horizontal en
+`compose_sbs` (sbs.py) que compensa la compresion horizontal del Half-SBS;
+`0` = desactivado (default).
+
 ## Arranque y comandos
 
 ```powershell
@@ -225,6 +238,7 @@ tools/ffmpeg  .  models/   (assets pesados; env CONVERTIDOR3D_MODELS/DATA)
 | `worker/engine_api/` | contrato v1 de motores (semver): `ChunkCtx`, protocolos, `ops.DibrWarper` (warp+mascara publico) |
 | `worker/engine_registry.py` | descubrimiento/validacion/instanciacion de motores (importlib por ruta) |
 | `worker/engines/<id>/` | un motor = manifest.json + engine.py + probe.py (+ requirements). Esquema: `engines/manifest.schema.json` |
+| `profiles/<id>.json` | perfil de renderizado = `{id,label,description,cfg}` que preconfigura todos los knobs. Servido por `server/utils/profiles.ts` -> `GET /api/profiles` |
 | `worker/backend/` | pipeline Python — **fork deliberado** del proyecto original desde 2026-07-18 (antes verbatim; ver docs/adr-motores.md) |
 | `worker/requirements*.txt` | base / -AI (CUDA) / -AI-cpu (DML) del worker; `constraints.txt` = limites pip compartidos |
 | `docs/adr-motores.md` | ADR de la arquitectura de motores + guia "como escribir un motor" |

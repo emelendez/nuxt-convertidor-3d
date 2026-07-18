@@ -1,0 +1,21 @@
+{
+  "id": "lg-oled-fpr",
+  "label": "TV 3D pasiva FPR (LG OLED y similares)",
+  "description": "Perfil de calidad para paneles 3D pasivos con polarizador por filas (FPR): Half-SBS 4K, relleno de desoclusiones por inpainting Telea, suavizado temporal de la profundidad y nitidez horizontal para compensar la compresión horizontal del Half-SBS. Parallax y nitidez son puntos de partida: ajústalos a tu pantalla y distancia. Nota: proc_res 4K es lento sin GPU NVIDIA; puedes bajarlo a 1080p manteniendo la salida 4K.",
+  "cfg": {
+    "proc_res": "4k",
+    "output": "hsbs_4k",
+    "depth_model": "vda_s",
+    "mode": "stereo_fast_telea",
+    "engines": { "depth": "auto", "stereo": "stereo_fast_telea" },
+    "divergence": 2.5,
+    "convergence": 0.5,
+    "tonemap": true,
+    "depth_smooth": true,
+    "depth_smooth_strength": 0.7,
+    "telea_radius": 4,
+    "inpaint_steps": 8,
+    "sharpen": 0.6,
+    "sharpen_radius": 1.2
+  }
+}

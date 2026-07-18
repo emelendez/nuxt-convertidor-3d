@@ -48,10 +48,31 @@ watch(uploadFile, async (f) => {
 })
 
 const p = computed(() => store.probe)
+
+// Perfiles de renderizado: preconfiguran todos los parametros del pipeline.
+const profileItems = computed(() => store.profiles.map(pr => ({ label: pr.label, value: pr.id })))
+const currentProfile = computed(() => store.profiles.find(pr => pr.id === store.selectedProfile))
 </script>
 
 <template>
   <div class="flex flex-col gap-6">
+    <UCard v-if="profileItems.length">
+      <template #header>
+        <h2 class="font-semibold">Perfil de renderizado</h2>
+      </template>
+      <UFormField label="Ajustes preconfigurados para tu pantalla/escenario">
+        <USelect
+          :items="profileItems"
+          :model-value="store.selectedProfile"
+          class="w-full sm:max-w-md"
+          @update:model-value="store.selectProfileById($event)"
+        />
+      </UFormField>
+      <p v-if="currentProfile?.description" class="text-xs text-muted mt-2">
+        {{ currentProfile.description }}
+      </p>
+    </UCard>
+
     <UCard>
       <template #header>
         <h2 class="font-semibold">1 · Elige la película</h2>

@@ -78,6 +78,47 @@ const statusLabel: Record<string, string> = { ok: '✓ viable', warn: '⚠ con a
           <USelect v-model="store.cfg.output" :items="outputItems" class="w-full" />
         </UFormField>
       </div>
+
+      <UCollapsible class="mt-4">
+        <UButton
+          label="Ajustes avanzados"
+          color="neutral"
+          variant="ghost"
+          trailing-icon="i-lucide-chevron-down"
+          class="w-full justify-between"
+        />
+        <template #content>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+            <UFormField label="Divergencia (parallax)" help="Separación estéreo; a mayor valor, más profundidad">
+              <UInputNumber v-model="store.cfg.divergence" :min="0" :max="6" :step="0.1" class="w-full" />
+            </UFormField>
+            <UFormField label="Convergencia (plano de pantalla)">
+              <UInputNumber v-model="store.cfg.convergence" :min="0" :max="1" :step="0.05" class="w-full" />
+            </UFormField>
+            <UFormField label="Nitidez horizontal" help="Compensa la compresión horizontal del Half-SBS (0 = desactivada)">
+              <UInputNumber v-model="store.cfg.sharpen" :min="0" :max="2" :step="0.1" class="w-full" />
+            </UFormField>
+            <UFormField label="Radio de nitidez">
+              <UInputNumber v-model="store.cfg.sharpen_radius" :min="0.1" :max="4" :step="0.1" class="w-full" />
+            </UFormField>
+            <UFormField label="Radio de relleno (Telea)" help="Solo con el motor HQ-lite (relleno Telea)">
+              <UInputNumber v-model="store.cfg.telea_radius" :min="1" :max="10" :step="1" class="w-full" />
+            </UFormField>
+            <UFormField label="Fuerza de suavizado temporal" help="Solo con profundidad ONNX (anti-parpadeo)">
+              <UInputNumber v-model="store.cfg.depth_smooth_strength" :min="0" :max="0.95" :step="0.05" class="w-full" />
+            </UFormField>
+            <UFormField label="Pasos de inpainting" help="Solo con el motor Calidad (SVD)">
+              <UInputNumber v-model="store.cfg.inpaint_steps" :min="2" :max="25" :step="1" class="w-full" />
+            </UFormField>
+            <UFormField label="Suavizado temporal (ONNX)">
+              <USwitch v-model="store.cfg.depth_smooth" />
+            </UFormField>
+            <UFormField label="Tone-mapping HDR→SDR">
+              <USwitch v-model="store.cfg.tonemap" />
+            </UFormField>
+          </div>
+        </template>
+      </UCollapsible>
     </UCard>
 
     <UCard v-if="current">

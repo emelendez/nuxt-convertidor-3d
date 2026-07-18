@@ -1,0 +1,16 @@
+{
+  "id": "default",
+  "label": "Predeterminado",
+  "description": "Ajustes por defecto del conversor: modo Rápido (warp DIBR), profundidad según el hardware (VDA en NVIDIA / DA2-ONNX si no) y salida Half-SBS 4K. Sin nitidez añadida.",
+  "cfg": {
+    "proc_res": "4k",
+    "depth_model": "vda_s",
+    "mode": "fast",
+    "output": "hsbs_4k",
+    "inpaint_steps": 8,
+    "divergence": 2.0,
+    "convergence": 0.5,
+    "tonemap": true,
+    "sharpen": 0.0
+  }
+}

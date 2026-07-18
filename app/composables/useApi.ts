@@ -29,6 +29,7 @@ export function useApi() {
 
   return {
     health: () => req('/api/health'),
+    profiles: () => req('/api/profiles'),
     fsList: (dir?: string) => req(`/api/fs/list${dir ? `?dir=${encodeURIComponent(dir)}` : ''}`),
     uploadVideo,
     probe: (path: string) => req('/api/probe', { method: 'POST', body: { path } }),
