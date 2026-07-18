@@ -16,9 +16,17 @@ estereoscopico Side-by-Side para televisores LG 3D pasivos.
 Idioma de la UI, los comentarios y los mensajes: **espanol**.
 
 **Proyecto hermano de solo lectura:** `D:\WEBAPPS\convertidor-3d` (la version
-original 100 % Python; NO se toca). Este proyecto reutiliza su pipeline de IA
-(copiado en `worker/backend/`) y puede copiar de ahi FFmpeg y modelos en el
-`setup.ps1`.
+original 100 % Python; NO se toca). `worker/backend/` nacio como copia
+verbatim de su pipeline; desde 2026-07-18 es un **fork deliberado** (ver
+`docs/adr-motores.md`): el codigo es propio y evoluciona aqui. `setup.ps1`
+puede seguir copiando de alli FFmpeg y modelos.
+
+**Motores de IA como addons:** las etapas de profundidad/estereo son motores
+intercambiables en `worker/engines/<id>/` (manifest + probe + engine) sobre el
+contrato `worker/engine_api/` y el registro `worker/engine_registry.py`. La
+seleccion viaja en `cfg.engines` (la resuelve Node ANTES de hashear el
+workdir) y la UI/estimador/instalador los descubren via `detect.py` ->
+`/api/health`. Guia completa: `docs/adr-motores.md`.
 
 ## Arranque y comandos
 
@@ -26,11 +34,15 @@ original 100 % Python; NO se toca). Este proyecto reutiliza su pipeline de IA
 # arranque portable (regenera node_modules/build si faltan; abre el navegador)
 run.bat
 
-# instalacion por niveles
+# instalacion por MOTOR (lee worker/engines/<id>/manifest.json)
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -Engine depth_da2_onnx,stereo_fast_telea
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -ListEngines   # tabla de motores, sin instalar
+# alias retrocompatibles (niveles clasicos)
 powershell -ExecutionPolicy Bypass -File scripts\setup.ps1        # Node + build + FFmpeg + venv base
-powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -DML   # sin NVIDIA: torch CPU + ONNX DirectML
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -DML   # sin NVIDIA: torch CPU + ONNX DirectML (+ telea)
 powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -AI    # + PyTorch CUDA + Video Depth Anything
-powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -All   # + StereoCrafter (HQ)
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -All   # + StereoCrafter (HQ; SVD es GATED: exige HF_TOKEN)
+# -Yes = desatendido (sin prompts); log en .cache/setup-*.log
 
 # desarrollo (Vite HMR, http://127.0.0.1:8765)
 npm run dev
@@ -151,7 +163,14 @@ tools/ffmpeg  .  models/   (assets pesados; env CONVERTIDOR3D_MODELS/DATA)
   con el entorno `CONVERTIDOR3D_DATA`/`CONVERTIDOR3D_MODELS` (para compartir
   `data/` y `models/` con Node) y `PYTHONUTF8=1`.
 - **Jobspec** (`<workdir>/jobspec.json`, lo escribe Node): `job_id, source, probe,
-  cfg, segment_start, segment_duration, is_demo, workdir, simulate`.
+  cfg, segment_start, segment_duration, is_demo, workdir, simulate`. Dentro de
+  `cfg` viaja `engines: {depth, stereo}` con los motores YA RESUELTOS por Node
+  (jamas 'auto': entra en el hash del workdir). Un jobspec legacy sin
+  `engines` sigue funcionando (mapper en `runner._resolve_engines`).
+- **Manifest de reanudacion v2** (`<workdir>/manifest.json`): incluye
+  `engines` ademas de `cfg`; reanudar exige igualdad de ambos (los chunks de
+  motores distintos no se mezclan). Un manifest v1 se acepta una vez y se
+  reetiqueta.
 - **workdir determinista:** lo calcula **Node** (`sha1` de [source,cfg,kind,segmento]
   en `jobs.ts:canonical`) y lo pasa en el jobspec; el worker lo usa tal cual (NO
   re-hashea). Asi la reanudacion sobrevive a reinicios. NOTA: el hash de Node
@@ -202,9 +221,13 @@ tools/ffmpeg  .  models/   (assets pesados; env CONVERTIDOR3D_MODELS/DATA)
 | `server/routes/pin.get.ts` | formulario de PIN autocontenido (fuera de la SPA) |
 | `server/plugins/bootstrap.ts` | antepone `tools/ffmpeg/bin` al PATH + crea directorios |
 | `worker/cli.py` | **entrypoint nuevo**: envuelve `RunnerContext`, emite JSON, cancela por stdin |
-| `worker/detect.py` | **entrypoint nuevo**: sondeo de capacidades (cuda/dml/cpu, encoder, depth) -> JSON para Node |
-| `worker/backend/` | **copia verbatim** de `backend/` del proyecto original (imports `from backend...`) |
-| `worker/requirements*.txt` | base / -AI (CUDA) / -AI-cpu (DML) del worker |
+| `worker/detect.py` | **entrypoint nuevo**: sondeo de capacidades (cuda/dml/cpu, encoder, depth) + motores addon -> JSON para Node |
+| `worker/engine_api/` | contrato v1 de motores (semver): `ChunkCtx`, protocolos, `ops.DibrWarper` (warp+mascara publico) |
+| `worker/engine_registry.py` | descubrimiento/validacion/instanciacion de motores (importlib por ruta) |
+| `worker/engines/<id>/` | un motor = manifest.json + engine.py + probe.py (+ requirements). Esquema: `engines/manifest.schema.json` |
+| `worker/backend/` | pipeline Python — **fork deliberado** del proyecto original desde 2026-07-18 (antes verbatim; ver docs/adr-motores.md) |
+| `worker/requirements*.txt` | base / -AI (CUDA) / -AI-cpu (DML) del worker; `constraints.txt` = limites pip compartidos |
+| `docs/adr-motores.md` | ADR de la arquitectura de motores + guia "como escribir un motor" |
 | `scripts/setup.ps1` | instalacion por niveles (Node + build + FFmpeg + venv) |
 | `scripts/start.ps1` + `run.bat` | lanzador portable |
 | `models/`, `tools/ffmpeg/`, `data/` | assets/datos (en .gitignore; los crea/copia setup.ps1) |
@@ -264,7 +287,13 @@ tools/ffmpeg  .  models/   (assets pesados; env CONVERTIDOR3D_MODELS/DATA)
   y `-nostdin` en el ffmpeg de previews de Node (fileActions). Si se anade
   cualquier spawn nuevo que herede stdin, mantener este escudo.
 - **workdir hash:** la fuente de verdad es Node; no re-hashear en Python (los
-  formatos de serializacion difieren en espacios).
+  formatos de serializacion difieren en espacios). `cfg.engines` DEBE llegar
+  resuelto desde Node (nunca 'auto'): forma parte del hash y de la identidad
+  de reanudacion.
+- **Motores nuevos:** un motor no es solo codigo — necesita manifest valido
+  (id = carpeta), probe, claves de calibracion propias y, si trae pesos git,
+  commit pineado. NO tocar las claves de calibracion legacy de los motores
+  clasicos (warp/inpaint/depth): hay maquinas con calibracion escrita.
 - **Maquina de desarrollo sin GPU NVIDIA ni FFmpeg:** el pipeline real
   (depth/stereo_hq/encode) esta escrito y su contrato verificado, pero valida las
   firmas contra los repos clonados (`models/Video-Depth-Anything`,
@@ -315,7 +344,27 @@ CDP (local vs remoto) + demo creada desde el origen remoto con el worker
 escribiendo en `data/conversions` (reanudacion ~30 s). Scripts de la bateria en
 el scratchpad de la sesion (`test_red.mjs`, `shot_red.mjs`).
 
+**Arquitectura de motores addon (2026-07-18, issue #4):** fork declarado de
+`worker/backend/`; contrato `engine_api` v1 + registro + 5 motores builtin
+(depth_vda, depth_da2_onnx con estabilizador temporal, stereo_fast,
+stereo_fast_telea "HQ-lite" sin SVD/CUDA, stereo_sc_svd); manifest de
+reanudacion v2 con identidad de motor; motores resueltos en Node antes del
+hash; detect.py/health/estimador/UI descubren motores dinamicamente;
+`setup.ps1 -Engine` instala por manifest (gated-aware, commits pineados,
+constraints.txt, -Yes desatendido, log+freeze en .cache). Bugs reales
+corregidos: `attempt_nvdec` indefinido en decode.py; venv sin pip;
+EPERM de npm por procesos node residuales/OneDrive (reintento).
+
+**E2E REAL verificado (2026-07-18, AMD Radeon iGPU DirectML, sin NVIDIA):**
+`setup.ps1 -All -Yes` desatendido termina exit 0 (3 motores OK, 2 SALTADO
+CUDA con razon; FFmpeg via winget); demo real de 10 s con
+`depth_da2_onnx`(+estabilizador)+`stereo_fast_telea` por el pipeline completo
+a 1,33 fps globales -> HEVC 1920x1080 `stereo_mode=left_right` via hevc_amf;
+calibracion por motor escrita (`dml:stereo:stereo_fast_telea:1080p=2.24`);
+reanudacion con manifest v2: relanzar el mismo job reutilizo el chunk (20 s
+vs ~180 s). OJO: `nuxt build` NO ejecuta typecheck (no hay vue-tsc instalado)
+— los errores de tipos solo se ven en runtime.
+
 Pendiente: prueba en GPU NVIDIA/CUDA (modo Calidad incluido); pelicula completa
-(no solo demo); copia efectiva de `tools/ffmpeg` y `models/` propios (la hace
-`setup.ps1`; en esta maquina se apunta al proyecto hermano via env). i18n en/es.
-Mejora futura del modo red: TLS via reverse-proxy si se quiere PIN cifrado.
+(no solo demo); comparativa visual Half-SBS de stereo_fast_telea vs stereo_fast
+en TV real; i18n en/es. Mejora futura del modo red: TLS via reverse-proxy.

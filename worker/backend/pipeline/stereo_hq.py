@@ -88,30 +88,15 @@ class HQStereo:
         self._pipeline.enable_model_cpu_offload()
 
     def _splat(self, frames: np.ndarray, depths: np.ndarray):
-        """Forward-splatting de la vista derecha + máscara de oclusiones."""
-        # Reutiliza el warp del modo rápido pero conservando la máscara de
-        # huecos en lugar de rellenarla: eso es lo que inpaintará el SVD.
-        from backend.pipeline.stereo_fast import FastStereo
-        torch = self.torch
-        fs = FastStereo(self.divergence, self.convergence, edge_dilation=0)
-        N, H, W, _ = frames.shape
-        max_disp_px = self.divergence / 100.0 * W / 2.0
-        warped, masks = [], []
-        with torch.no_grad():
-            for i in range(N):
-                img = torch.from_numpy(frames[i]).to(fs.device).float()
-                d = torch.from_numpy(depths[i]).to(fs.device).float()
-                disp = (d - self.convergence) * max_disp_px
-                # _warp_one_eye rellena huecos; detectamos huecos aparte
-                xs = torch.arange(W, device=img.device).expand(H, W)
-                target = (xs + disp).round().long().clamp(0, W - 1)
-                written = torch.zeros(H, W, dtype=torch.bool, device=img.device)
-                rows = torch.arange(H, device=img.device).unsqueeze(1).expand(H, W)
-                written[rows.reshape(-1), target.reshape(-1)] = True
-                warped.append(fs._warp_one_eye(img, disp, +1).clamp(0, 255)
-                              .byte().cpu().numpy())
-                masks.append((~written).cpu().numpy())
-        return np.stack(warped), np.stack(masks)
+        """Forward-splatting de la vista derecha + máscara de oclusiones.
+
+        Usa la operación pública del contrato de motores (engine_api.ops):
+        la imagen sale con los huecos rellenos por vecino y la máscara marca
+        qué zonas son desoclusión — eso es lo que inpaintará el SVD.
+        """
+        from engine_api.ops import DibrWarper
+        warper = DibrWarper(self.divergence, self.convergence, edge_dilation=0)
+        return warper.warp(frames, depths, +1)
 
     def process(self, frames: np.ndarray, depths: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """(N,H,W,3) + (N,H,W) → (izquierda=original, derecha=inpainted)."""

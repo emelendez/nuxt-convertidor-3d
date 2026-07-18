@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "convertidor3d/engine-manifest/v1",
+  "title": "Manifest de motor de IA del Convertidor 3D (normativo; el registro valida a mano contra esto)",
+  "type": "object",
+  "required": ["manifest_version", "id", "stage", "api_version", "label"],
+  "properties": {
+    "manifest_version": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+$", "description": "Debe coincidir con el nombre de la carpeta" },
+    "stage": { "enum": ["depth", "stereo", "inpaint"] },
+    "api_version": { "type": "string", "description": "Rango de engine_api soportado, p.ej. \"1.x\"" },
+    "label": { "type": "string", "description": "Nombre para la UI" },
+    "description": { "type": "string" },
+    "requires_compute": {
+      "type": "array", "items": { "enum": ["cuda", "dml"] },
+      "description": "Backends de computo imprescindibles; vacio = corre en cualquiera (CPU incluida)"
+    },
+    "requirements": { "type": "string", "description": "Fichero pip propio, relativo a la carpeta del motor" },
+    "venv": { "enum": ["shared", "isolated"], "default": "shared", "description": "isolated = venv propio en .venv-engines/<id> (deps irreconciliables)" },
+    "weights": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "dest"],
+        "properties": {
+          "kind": { "enum": ["hf", "hf-snapshot", "git"] },
+          "repo": { "type": "string", "description": "hf/hf-snapshot: id del repo en HuggingFace" },
+          "url": { "type": "string", "description": "git: URL del repositorio" },
+          "commit": { "type": "string", "description": "git: commit pineado (obligatorio en la practica: evita drift de API)" },
+          "files": { "type": "array", "items": { "type": "string" }, "description": "hf: ficheros concretos a descargar" },
+          "rename": { "type": "object", "description": "hf: renombrado destino {fichero_origen: nombre_final}" },
+          "dest": { "type": "string", "description": "Ruta destino relativa a models/" },
+          "gated": { "type": "boolean", "default": false, "description": "true = requiere licencia aceptada + token HF; el instalador lo comprueba ANTES de descargar nada" },
+          "license": { "type": "string" }
+        }
+      }
+    },
+    "calibration_keys": { "type": "object", "description": "Plantillas de claves que escribe el worker en data/calibration.json" },
+    "estimator": {
+      "type": "object",
+      "description": "Semillas para la matriz de estimaciones cuando no hay calibracion",
+      "properties": {
+        "base_fps": { "type": "object", "description": "fps orientativos por proc_res, p.ej. {\"1080p\": 5.0, \"4k\": 1.3}" },
+        "vram_gb": { "type": "object" }
+      }
+    },
+    "cfg_schema": { "type": "object", "description": "Campos de cfg propios del motor: {campo: {type, default, min, max, enum}}" }
+  }
+}

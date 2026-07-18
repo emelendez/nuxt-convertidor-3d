@@ -11,6 +11,7 @@ const loading = ref(true)
 const rows = ref<any[]>([])
 const outputs = ref<Record<string, any>>({})
 const depthModels = ref<Record<string, any>>({})
+const engines = ref<any[]>([])
 
 async function loadEstimate() {
   if (!store.probe) return
@@ -25,6 +26,7 @@ async function loadEstimate() {
     rows.value = r.rows
     outputs.value = r.outputs
     depthModels.value = r.depth_models
+    engines.value = r.engines || []
     store.unlockStep(3)
   } catch (e: any) {
     toast.add({ title: 'No se pudo estimar', description: e.message, color: 'error' })
@@ -35,7 +37,17 @@ async function loadEstimate() {
 onMounted(loadEstimate)
 
 const procItems = [{ label: '1080p', value: '1080p' }, { label: '4K', value: '4k' }]
-const modeItems = [{ label: '⚡ Rápido', value: 'fast' }, { label: '💎 Calidad', value: 'hq' }]
+// modos = motores de estereo que reporta el worker (addons incluidos); sin
+// worker instalado, los dos clasicos de siempre
+const modeItems = computed(() => {
+  const stereo = engines.value.filter((e: any) => e.stage === 'stereo')
+  if (!stereo.length) return [{ label: '⚡ Rápido', value: 'fast' }, { label: '💎 Calidad', value: 'hq' }]
+  return stereo.map((e: any) => ({
+    label: modeLabel(engineToMode(e.id), engines.value),
+    value: engineToMode(e.id),
+    disabled: !e.available,
+  }))
+})
 const depthItems = computed(() => Object.entries(depthModels.value).map(([value, m]: any) => ({ label: m.label, value })))
 const outputItems = computed(() => Object.entries(outputs.value).map(([value, o]: any) => ({ label: o.label, value })))
 
@@ -107,8 +119,8 @@ const statusLabel: Record<string, string> = { ok: '✓ viable', warn: '⚠ con a
               @click="Object.assign(store.cfg, { proc_res: r.proc_res, depth_model: r.depth_model, mode: r.mode, output: r.output })"
             >
               <td class="py-1.5 pr-3">{{ r.proc_res }}</td>
-              <td class="pr-3">{{ r.depth_model.replace('vda_', 'VDA-').toUpperCase() }}</td>
-              <td class="pr-3">{{ r.mode === 'hq' ? 'Calidad' : 'Rápido' }}</td>
+              <td class="pr-3">{{ depthModelLabel(r.depth_model) }}</td>
+              <td class="pr-3">{{ modeLabel(r.mode, engines) }}</td>
               <td class="pr-3">{{ outputs[r.output]?.label || r.output }}</td>
               <td class="pr-3"><UBadge :color="statusColor[r.status]" variant="subtle" size="sm" :label="statusLabel[r.status]" /></td>
               <td class="pr-3">{{ fmtDuration(r.demo_seconds) }}</td>

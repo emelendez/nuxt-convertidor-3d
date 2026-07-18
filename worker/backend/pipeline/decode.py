@@ -70,8 +70,9 @@ def decode_frames(path: str, proc_res: str, start_s: float | None = None,
             proc.wait()
         if got_any or proc.returncode == 0:
             return
-        # NVDEC falló sin producir nada → reintento por software
-        if not attempt_nvdec:
+        # hwaccel falló sin producir nada → reintento por software; si ya era
+        # el intento por software (attempt_hw is None), no hay más que probar
+        if not attempt_hw:
             raise DecodeError(f"ffmpeg no pudo decodificar: {stderr[-800:]}")
 
 

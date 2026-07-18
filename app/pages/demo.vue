@@ -40,7 +40,7 @@ const demos = computed(() => Object.values(store.jobs)
 
 function play(job: any) {
   previewSrc.value = `/api/jobs/${job.id}/preview?codec=h264`
-  previewTitle.value = `${job.cfg.depth_model.replace('vda_', 'VDA-').toUpperCase()} · ${job.cfg.output}`
+  previewTitle.value = `${depthModelLabel(job.cfg.depth_model)} · ${job.cfg.output}`
 }
 
 function pct(j: any) {
@@ -82,7 +82,7 @@ function pct(j: any) {
       <div v-else class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <div v-for="j in demos" :key="j.id" class="border border-default rounded-xl p-3 text-sm">
           <div class="flex justify-between items-center gap-2">
-            <span class="font-medium">{{ j.cfg.mode === 'hq' ? '💎' : '⚡' }} {{ j.cfg.depth_model.replace('vda_', 'VDA-').toUpperCase() }} · {{ j.cfg.output }}</span>
+            <span class="font-medium">{{ modeLabel(j.cfg.mode, store.health?.engines) }} · {{ depthModelLabel(j.cfg.depth_model) }} · {{ j.cfg.output }}</span>
             <UBadge size="sm" variant="subtle" :color="j.state === 'done' ? 'success' : j.state === 'error' ? 'error' : 'neutral'"
               :label="j.state === 'done' ? '✓ lista' : j.state === 'running' ? `${pct(j)}%` : j.state" />
           </div>

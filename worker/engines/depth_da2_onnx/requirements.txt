@@ -1,0 +1,2 @@
+# Pila sin NVIDIA compartida del proyecto (torch CPU + onnxruntime-directml)
+-r ../../requirements-ai-cpu.txt

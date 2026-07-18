@@ -96,7 +96,7 @@ async function del(f: any) {
           <div class="flex items-center justify-between gap-2">
             <div class="min-w-0">
               <p class="text-sm font-medium truncate" :title="j.filename">{{ j.filename }}</p>
-              <p class="text-xs text-muted">{{ j.cfg.depth_model.replace('vda_', 'VDA-') }} · {{ j.cfg.proc_res }} → {{ j.cfg.output }}</p>
+              <p class="text-xs text-muted">{{ depthModelLabel(j.cfg.depth_model) }} · {{ modeLabel(j.cfg.mode, store.health?.engines) }} · {{ j.cfg.proc_res }} → {{ j.cfg.output }}</p>
             </div>
             <UBadge size="sm" variant="subtle" :color="j.state === 'running' ? 'success' : 'warning'" :label="j.state === 'running' ? '▶ En proceso' : '⏳ En cola'" />
             <UButton size="xs" color="error" variant="subtle" @click="cancel(j.id)">Cancelar</UButton>

@@ -1,0 +1,2 @@
+# Pila CUDA compartida del proyecto (torch cu126, VDA, diffusers...)
+-r ../../requirements-ai.txt

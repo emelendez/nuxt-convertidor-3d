@@ -13,9 +13,15 @@ pasivos, usando estimación de profundidad por IA.
 ## Características
 
 - Asistente de 4 pasos: seleccionar película → configurar → demo de 60 s → conversión completa.
-- Estimación de profundidad con **Video Depth Anything** (CUDA) o **Depth Anything V2 ONNX**
-  (DirectML/CPU) con selección automática según el hardware.
-- Dos modos de estéreo: **rápido** (warp DIBR) y **calidad** (splatting + inpainting, requiere CUDA).
+- **Motores de IA intercambiables (addons):** cada etapa (profundidad, estéreo) es un
+  motor en `worker/engines/<id>/` que la app descubre, sondea, estima e instala por sí
+  sola. Añadir un motor nuevo = soltar una carpeta con su `manifest.json` (ver
+  [docs/adr-motores.md](docs/adr-motores.md)).
+- Profundidad con **Video Depth Anything** (CUDA) o **Depth Anything V2 ONNX**
+  (DirectML/CPU, con estabilizador temporal anti-parpadeo) según el hardware.
+- Tres modos de estéreo: **rápido** (warp DIBR), **HQ-lite** (warp + relleno Telea de
+  desoclusiones — sin CUDA ni modelos gated) y **calidad** (splatting + inpainting SVD,
+  requiere CUDA y token de HuggingFace).
 - Codificación HEVC por hardware (NVENC → AMF → x265 como cascada de respaldo) y
   tone-mapping HDR→SDR (Dolby Vision incluido).
 - **Reanudable:** la conversión se trocea por escenas; si se interrumpe, los chunks
@@ -41,17 +47,32 @@ pasivos, usando estimación de profundidad por IA.
 
 ## Instalación
 
-Instalación por niveles con PowerShell (desde la raíz del proyecto):
+Instalación por motores con PowerShell (desde la raíz del proyecto):
 
 ```powershell
+# ver la tabla de motores disponibles (no instala nada)
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -ListEngines
+
+# instalar motores concretos (lee su manifest: pip + pesos + repos pineados)
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -Engine depth_da2_onnx,stereo_fast_telea
+
+# alias clasicos
 powershell -ExecutionPolicy Bypass -File scripts\setup.ps1        # Node + build + FFmpeg + venv base
-powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -DML   # sin NVIDIA: torch CPU + ONNX DirectML
-powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -AI    # + PyTorch CUDA + Video Depth Anything
-powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -All   # + StereoCrafter (modo calidad HQ)
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -DML   # sin NVIDIA (+ HQ-lite)
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -AI    # PyTorch CUDA + Video Depth Anything
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -All   # todo (SVD es "gated": requiere HF_TOKEN)
+
+# -Yes = desatendido (sin preguntas). Log en .cache\setup-*.log
 ```
 
+> El modo Calidad (StereoCrafter) usa pesos **gated** de HuggingFace: hay que aceptar la
+> licencia de `stabilityai/stable-video-diffusion-img2vid-xt-1-1` en huggingface.co y
+> hacer `huggingface-cli login` (o definir `HF_TOKEN`) **antes** de instalar
+> `stereo_sc_svd`. El instalador lo comprueba antes de descargar nada.
+
 Los directorios `data/`, `models/`, `tools/` y `.venv/` no viajan con el repositorio:
-los crea/descarga `setup.ps1`.
+los crea/descarga `setup.ps1`. Si el proyecto vive en una carpeta sincronizada por
+OneDrive, pausa la sincronización durante la instalación (bloqueos EPERM de npm).
 
 ## Uso
 

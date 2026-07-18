@@ -26,11 +26,28 @@ export interface Components {
   stereo_hq: boolean
 }
 
+// Motor de IA addon reportado por worker/detect.py (worker/engines/<id>/).
+export interface EngineInfo {
+  id: string
+  stage: 'depth' | 'stereo' | 'inpaint'
+  label: string
+  description?: string | null
+  available: boolean
+  missing: string[]
+  detail?: string | null
+  requires_compute: string[]
+  gated?: boolean
+  licenses?: string[]
+  estimator?: { base_fps?: Record<string, number>, vram_gb?: Record<string, number> } | null
+  cfg_schema?: Record<string, any> | null
+}
+
 export interface Capabilities {
   compute: ComputeInfo
   components: Components
   missing: { depth: string[], stereo_hq: string[] }
   gpus: GpuInfo[]
+  engines?: EngineInfo[]   // ausente si el worker Python no esta instalado
   source: 'simulate' | 'python' | 'node'
 }
 
@@ -61,6 +78,13 @@ async function simulateCapabilities(): Promise<Capabilities> {
     },
     missing: { depth: [], stereo_hq: [] },
     gpus: await detectGpus(),
+    engines: [
+      { id: 'depth_vda', stage: 'depth', label: 'Video Depth Anything (CUDA)', available: true, missing: [], requires_compute: ['cuda'] },
+      { id: 'depth_da2_onnx', stage: 'depth', label: 'Depth Anything V2 (ONNX, DirectML/CPU)', available: true, missing: [], requires_compute: [] },
+      { id: 'stereo_fast', stage: 'stereo', label: 'Rápido (warp DIBR)', available: true, missing: [], requires_compute: [] },
+      { id: 'stereo_fast_telea', stage: 'stereo', label: 'HQ-lite (warp + relleno Telea)', available: true, missing: [], requires_compute: [], estimator: { base_fps: { '1080p': 5.0, '4k': 1.3 } } },
+      { id: 'stereo_sc_svd', stage: 'stereo', label: 'Calidad (StereoCrafter + SVD)', available: true, missing: [], requires_compute: ['cuda'], gated: true },
+    ],
     source: 'simulate',
   }
 }
@@ -138,6 +162,7 @@ export async function getHealth(settings: unknown) {
     components: cap.components,
     missing: cap.missing,
     gpus: cap.gpus,
+    engines: cap.engines ?? [],
     settings,
   }
 }

@@ -25,7 +25,7 @@ export interface ComputeInfo {
 export interface Estimate {
   proc_res: string
   depth_model: string
-  mode: string
+  mode: string          // 'fast' | 'hq' | id de motor addon (stereo_fast_telea, ...)
   inpaint_steps: number
   output: string
   demo_seconds: number
@@ -34,6 +34,23 @@ export interface Estimate {
   status: 'ok' | 'warn' | 'no'
   notes: string[]
   calibrated: boolean
+}
+
+// Motor de estéreo addon (de /api/health engines[]): lo minimo que el
+// estimador necesita para estimar un motor que no conoce de fabrica.
+export interface StereoEngineInfo {
+  id: string
+  label?: string
+  requires_compute?: string[]
+  estimator?: { base_fps?: Record<string, number> } | null
+}
+
+// mode legacy <-> id de motor: 'fast' y 'hq' son alias historicos de los dos
+// motores clasicos; el resto de modes SON ids de motor tal cual.
+export const MODE_TO_ENGINE: Record<string, string> = { fast: 'stereo_fast', hq: 'stereo_sc_svd' }
+export function modeToEngine(mode: string): string { return MODE_TO_ENGINE[mode] ?? mode }
+export function engineToMode(id: string): string {
+  return id === 'stereo_fast' ? 'fast' : id === 'stereo_sc_svd' ? 'hq' : id
 }
 
 // ── BD de GPUs: escalador vs RTX 4090 ──────────────────────────────────────
@@ -166,17 +183,23 @@ function vramCheck(procRes: string, depthModel: string, mode: string, vram: numb
 
 function estimateFallback(durationS: number, fps: number, compute: ComputeInfo,
   procRes: string, depthModel: string, mode: string, output: string,
-  demoDurationS: number, cal: Record<string, number>, notes: string[]): Estimate {
+  demoDurationS: number, cal: Record<string, number>, notes: string[],
+  engines?: StereoEngineInfo[]): Estimate {
   const kind = compute.kind // 'dml' | 'cpu'
   const threads = compute.cpu_threads || 8
   const cpuScale = Math.min(threads / FALLBACK_CPU_SCALE_REF_THREADS, 1.5)
 
+  const engineId = modeToEngine(mode)
+  const engineInfo = engines?.find(e => e.id === engineId)
+  const needsCuda = engineInfo
+    ? (engineInfo.requires_compute || []).includes('cuda')
+    : engineId === 'stereo_sc_svd'
   let calibrated = false
-  if (mode === 'hq') {
+  if (needsCuda) {
     return {
       proc_res: procRes, depth_model: depthModel, mode, inpaint_steps: 0, output,
       demo_seconds: 0, full_seconds: 0, vram_needed_gb: 16, status: 'no',
-      notes: ['El modo Calidad (inpainting SVD) requiere GPU NVIDIA con CUDA'],
+      notes: [`El motor ${engineInfo?.label || 'Calidad (inpainting SVD)'} requiere GPU NVIDIA con CUDA`],
       calibrated: false,
     }
   }
@@ -188,10 +211,23 @@ function estimateFallback(durationS: number, fps: number, compute: ComputeInfo,
     if (kind === 'cpu') depthFps *= cpuScale
   } else { calibrated = true }
 
-  const warpKey = `${kind}:warp:${procRes}`
-  let warpFps = cal[warpKey]
-  if (warpFps === undefined) warpFps = FALLBACK_WARP_FPS[procRes] * cpuScale
-  else calibrated = true
+  // fps de la etapa estereo: warp clasico con su clave legacy; motores addon
+  // con clave por id y semilla base_fps del manifest si no hay calibracion
+  let warpFps: number
+  if (engineId === 'stereo_fast') {
+    const warpKey = `${kind}:warp:${procRes}`
+    warpFps = cal[warpKey]
+    if (warpFps === undefined) warpFps = FALLBACK_WARP_FPS[procRes] * cpuScale
+    else calibrated = true
+  } else {
+    const engKey = `${kind}:stereo:${engineId}:${procRes}`
+    warpFps = cal[engKey]
+    if (warpFps === undefined) {
+      const seed = engineInfo?.estimator?.base_fps?.[procRes]
+      warpFps = (seed ?? FALLBACK_WARP_FPS[procRes] / 2) * cpuScale
+      notes.push(`Motor ${engineInfo?.label || engineId} sin calibrar: estimación orientativa`)
+    } else { calibrated = true }
+  }
 
   const encKind = compute.amf ? 'amf' : 'x265'
   const encodeFps = cal[`${kind}:encode:${output}`]
@@ -221,7 +257,7 @@ function estimateFallback(durationS: number, fps: number, compute: ComputeInfo,
 export function estimateOne(durationS: number, fps: number, gpu: GpuInfo | null,
   procRes: string, depthModel: string, mode: string, inpaintSteps: number,
   output: string, demoDurationS = 60.0, compute: ComputeInfo | null = null,
-  cal: Record<string, number> = {}): Estimate {
+  cal: Record<string, number> = {}, engines?: StereoEngineInfo[]): Estimate {
   const notes: string[] = []
 
   if (output === 'fsbs_4k' && procRes !== '4k') notes.push('Full-SBS 4K requiere procesar a 4K')
@@ -229,7 +265,7 @@ export function estimateOne(durationS: number, fps: number, gpu: GpuInfo | null,
   if (output === 'fsbs_4k') notes.push('⚠ 7680×2160 excede el decodificador de las TV LG 3D (uso PC/VR)')
 
   if (gpu === null && compute !== null && (compute.kind === 'dml' || compute.kind === 'cpu')) {
-    return estimateFallback(durationS, fps, compute, procRes, depthModel, mode, output, demoDurationS, cal, notes)
+    return estimateFallback(durationS, fps, compute, procRes, depthModel, mode, output, demoDurationS, cal, notes, engines)
   }
 
   const scaler = gpu && gpu.scaler ? gpu.scaler : UNKNOWN_SCALER
@@ -241,13 +277,20 @@ export function estimateOne(durationS: number, fps: number, gpu: GpuInfo | null,
   const [depthFps, c1] = stageFps(depthKey, depthBase, scaler, cal)
   calibrated ||= c1
 
+  const engineId = modeToEngine(mode)
   let stereoFps: number, c2: boolean
-  if (mode === 'fast') {
+  if (engineId === 'stereo_fast') {
     [stereoFps, c2] = stageFps(`warp:${procRes}`, WARP_FPS[procRes], scaler, cal)
-  } else {
+  } else if (engineId === 'stereo_sc_svd') {
     const base8 = HQ_INPAINT_FPS_8STEPS[procRes]
     const stepFactor = 0.35 + 0.65 * (inpaintSteps / 8.0)
     ;[stereoFps, c2] = stageFps(`inpaint:${procRes}:${inpaintSteps}`, base8 / stepFactor, scaler, cal)
+  } else {
+    // motor addon: clave de calibracion por id + semilla del manifest
+    const engineInfo = engines?.find(e => e.id === engineId)
+    const seed = engineInfo?.estimator?.base_fps?.[procRes] ?? WARP_FPS[procRes] / 2
+    ;[stereoFps, c2] = stageFps(`stereo:${engineId}:${procRes}`, seed, scaler, cal)
+    if (!c2) notes.push(`Motor ${engineInfo?.label || engineId} sin calibrar: estimación orientativa`)
   }
   calibrated ||= c2
 
@@ -283,15 +326,18 @@ export function estimateOne(durationS: number, fps: number, gpu: GpuInfo | null,
 
 export function estimateMatrix(durationS: number, fps: number, gpu: GpuInfo | null,
   inpaintSteps = 8, demoDurationS = 60.0, compute: ComputeInfo | null = null,
-  cal: Record<string, number> = {}): Estimate[] {
+  cal: Record<string, number> = {}, engines?: StereoEngineInfo[]): Estimate[] {
+  // eje de modos = motores de estereo disponibles; sin lista (legacy o sin
+  // worker), los dos clasicos de siempre -> matriz identica a la del port
+  const modes = engines?.length ? engines.map(e => engineToMode(e.id)) : ['fast', 'hq']
   const rows: Estimate[] = []
   for (const procRes of ['1080p', '4k']) {
     for (const depthModel of DEPTH_ORDER) {
-      for (const mode of ['fast', 'hq']) {
+      for (const mode of modes) {
         for (const output of OUTPUT_ORDER) {
           if (output === 'fsbs_4k' && procRes !== '4k') continue
           rows.push(estimateOne(durationS, fps, gpu, procRes, depthModel, mode,
-            inpaintSteps, output, demoDurationS, compute, cal))
+            inpaintSteps, output, demoDurationS, compute, cal, engines))
         }
       }
     }

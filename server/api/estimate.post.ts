@@ -7,6 +7,8 @@ export default defineEventHandler(async (event) => {
   const [cap, cal] = await Promise.all([getCapabilities(), loadCalibration()])
   const idx = body.gpu_index ?? 0
   const gpu = cap.gpus[idx] ?? cap.gpus[0] ?? null
+  // eje de modos de la matriz = motores de estereo que reporta el worker
+  const stereoEngines = cap.engines?.filter(e => e.stage === 'stereo')
   const rows = estimateMatrix(
     Number(body.duration_s) || 0,
     Number(body.fps) || 24,
@@ -15,6 +17,7 @@ export default defineEventHandler(async (event) => {
     Number(body.demo_duration_s) || 60,
     cap.compute,
     cal,
+    stereoEngines,
   )
   return {
     gpu,
@@ -22,6 +25,7 @@ export default defineEventHandler(async (event) => {
     rows,
     outputs: OUTPUTS,
     depth_models: DEPTH_MODELS,
+    engines: cap.engines ?? [],
     calibration: cal,
   }
 })

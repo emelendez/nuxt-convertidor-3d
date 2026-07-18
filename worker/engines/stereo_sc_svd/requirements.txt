@@ -1,0 +1,2 @@
+# Igual que la pila CUDA (diffusers/transformers/accelerate ya van en ella)
+-r ../../requirements-ai.txt

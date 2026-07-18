@@ -1,0 +1,21 @@
+{
+  "manifest_version": 1,
+  "id": "depth_vda",
+  "stage": "depth",
+  "api_version": "1.x",
+  "label": "Video Depth Anything (CUDA)",
+  "description": "Profundidad de video con consistencia temporal nativa (ventana deslizante 32/8). Requiere GPU NVIDIA.",
+  "requires_compute": ["cuda"],
+  "requirements": "requirements.txt",
+  "weights": [
+    { "kind": "git", "url": "https://github.com/DepthAnything/Video-Depth-Anything", "commit": "4f5ae23172ba60fd7bc11ef671cca678842c7072", "dest": "Video-Depth-Anything" },
+    { "kind": "hf", "repo": "depth-anything/Video-Depth-Anything-Small", "files": ["video_depth_anything_vits.pth"], "dest": "checkpoints", "license": "Apache-2.0" },
+    { "kind": "hf", "repo": "depth-anything/Video-Depth-Anything-Base", "files": ["video_depth_anything_vitb.pth"], "dest": "checkpoints", "license": "CC-BY-NC-4.0" },
+    { "kind": "hf", "repo": "depth-anything/Video-Depth-Anything-Large", "files": ["video_depth_anything_vitl.pth"], "dest": "checkpoints", "license": "CC-BY-NC-4.0" }
+  ],
+  "calibration_keys": { "depth": "depth:{depth_model}:{proc_res}" },
+  "cfg_schema": {
+    "depth_model": { "type": "string", "enum": ["vda_s", "vda_b", "vda_l"], "default": "vda_s" },
+    "vram_ok": { "type": "boolean", "default": true, "description": "false reduce la ventana temporal a 16" }
+  }
+}

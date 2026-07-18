@@ -1,0 +1,14 @@
+{
+  "manifest_version": 1,
+  "id": "stereo_fast_telea",
+  "stage": "stereo",
+  "api_version": "1.x",
+  "label": "HQ-lite (warp + relleno Telea)",
+  "description": "Warp DIBR + inpainting Telea (OpenCV) de las bandas de desoclusión, en lugar del relleno por vecino (streaking) del modo rápido. Sin CUDA, sin modelos gated; en Half-SBS queda cerca del SVD para una fracción del coste.",
+  "requires_compute": [],
+  "calibration_keys": { "stereo": "{kind}stereo:stereo_fast_telea:{proc_res}" },
+  "estimator": { "base_fps": { "1080p": 5.0, "4k": 1.3 } },
+  "cfg_schema": {
+    "telea_radius": { "type": "integer", "default": 3, "min": 1, "max": 10 }
+  }
+}

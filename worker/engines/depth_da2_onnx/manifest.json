@@ -1,0 +1,21 @@
+{
+  "manifest_version": 1,
+  "id": "depth_da2_onnx",
+  "stage": "depth",
+  "api_version": "1.x",
+  "label": "Depth Anything V2 (ONNX, DirectML/CPU)",
+  "description": "Profundidad por frame sin CUDA (iGPU DX12 via DirectML o CPU). Sin consistencia temporal nativa: incluye estabilizador EMA guiado por movimiento (depth_smooth).",
+  "requires_compute": [],
+  "requirements": "requirements.txt",
+  "weights": [
+    { "kind": "hf", "repo": "onnx-community/depth-anything-v2-small", "files": ["onnx/model_fp16.onnx"], "rename": { "onnx/model_fp16.onnx": "da2_s.onnx" }, "dest": "checkpoints/onnx", "license": "Apache-2.0" },
+    { "kind": "hf", "repo": "onnx-community/depth-anything-v2-base", "files": ["onnx/model_fp16.onnx"], "rename": { "onnx/model_fp16.onnx": "da2_b.onnx" }, "dest": "checkpoints/onnx", "license": "CC-BY-NC-4.0" },
+    { "kind": "hf", "repo": "onnx-community/depth-anything-v2-large", "files": ["onnx/model_fp16.onnx"], "rename": { "onnx/model_fp16.onnx": "da2_l.onnx" }, "dest": "checkpoints/onnx", "license": "CC-BY-NC-4.0" }
+  ],
+  "calibration_keys": { "depth": "{kind}:depth:{depth_model}" },
+  "cfg_schema": {
+    "depth_model": { "type": "string", "enum": ["vda_s", "vda_b", "vda_l"], "default": "vda_s", "description": "Se mapea a da2_{s,b,l}.onnx" },
+    "depth_smooth": { "type": "boolean", "default": true, "description": "Estabilizador temporal EMA (anti-pumping)" },
+    "depth_smooth_strength": { "type": "number", "default": 0.6, "min": 0.0, "max": 0.95 }
+  }
+}

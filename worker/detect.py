@@ -71,7 +71,30 @@ def main() -> int:
     depth_kind, depth_missing = depth_mod.depth_backend("vda_s")
     has_ffmpeg = shutil.which("ffmpeg") is not None
 
+    # Motores addon (worker/engines/): identidad + sondeo de cada manifest.
+    import engine_registry
+    from backend import config as bconfig
+    engines = []
+    for spec in engine_registry.load_manifests().values():
+        pr = engine_registry.probe_engine(spec, bconfig.MODELS_DIR)
+        weights = spec.manifest.get("weights") or []
+        engines.append({
+            "id": spec.id,
+            "stage": spec.stage,
+            "label": spec.label,
+            "description": spec.manifest.get("description"),
+            "available": pr["available"],
+            "missing": pr["missing"],
+            "detail": pr["detail"],
+            "requires_compute": spec.requires_compute,
+            "gated": any(w.get("gated") for w in weights),
+            "licenses": sorted({w["license"] for w in weights if w.get("license")}),
+            "estimator": spec.manifest.get("estimator"),
+            "cfg_schema": spec.manifest.get("cfg_schema"),
+        })
+
     _emit({
+        "engines": engines,
         "compute": compute.to_dict(),
         "components": {
             "ffmpeg": has_ffmpeg,

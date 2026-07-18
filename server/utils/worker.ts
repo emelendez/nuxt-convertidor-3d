@@ -10,7 +10,7 @@ import { basename, join } from 'pathe'
 import { ROOT_DIR, outputDir } from './config'
 import { OUTPUTS } from './estimator'
 import { spawn } from './proc'
-import { pythonExe, workerEnv } from './python'
+import { pythonExeForEngines, workerEnv } from './python'
 import type { Job, JobProgress } from './jobs'
 
 export async function runJob(
@@ -45,7 +45,9 @@ function runReal(
   signal: AbortSignal,
 ): Promise<string> {
   return new Promise<string>((resolve, reject) => {
-    const py = pythonExe()
+    // interprete por job: un motor con "venv": "isolated" usa su propio venv
+    const eng = job.cfg?.engines || {}
+    const py = pythonExeForEngines([eng.depth, eng.stereo])
     const cli = join(ROOT_DIR, 'worker', 'cli.py')
     if (!existsSync(cli)) {
       return reject(new Error(`No se encontro el worker Python: ${cli}`))

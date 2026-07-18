@@ -6,6 +6,10 @@
 # avisa a Claude via additionalContext; toda la logica con criterio vive en
 # la skill plan-to-issue-flow.
 
+# La sesion puede heredar un PATH anterior a la instalacion de gh (falso
+# negativo real cazado el 2026-07-18): anadir su ruta de instalacion tipica.
+[ -d "/c/Program Files/GitHub CLI" ] && PATH="$PATH:/c/Program Files/GitHub CLI"
+
 if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
   CONTEXT="El plan acaba de ser aprobado, pero 'gh' (GitHub CLI) no esta disponible o no esta autenticado en esta maquina. Antes de crear la issue de seguimiento, avisa al usuario de que instale/autentique gh (winget install --id GitHub.cli; gh auth login) o, si lo prefiere, continua con la implementacion del plan sin crear la issue."
 else

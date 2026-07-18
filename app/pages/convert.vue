@@ -29,8 +29,8 @@ const cfg = computed(() => store.cfg)
       <template #header><h2 class="font-semibold">4 · Conversión completa</h2></template>
       <dl class="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
         <div class="flex justify-between gap-4"><dt class="text-muted">Película</dt><dd class="truncate" :title="store.probe?.filename">{{ store.probe?.filename }}</dd></div>
-        <div class="flex justify-between gap-4"><dt class="text-muted">Modo</dt><dd>{{ cfg.mode === 'hq' ? `💎 Calidad (${cfg.inpaint_steps} pasos)` : '⚡ Rápido' }}</dd></div>
-        <div class="flex justify-between gap-4"><dt class="text-muted">Modelo</dt><dd>{{ cfg.depth_model.replace('vda_', 'VDA-').toUpperCase() }}</dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-muted">Modo</dt><dd>{{ modeLabel(cfg.mode, store.health?.engines) }}{{ cfg.mode === 'hq' ? ` (${cfg.inpaint_steps} pasos)` : '' }}</dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-muted">Modelo</dt><dd>{{ depthModelLabel(cfg.depth_model) }}</dd></div>
         <div class="flex justify-between gap-4"><dt class="text-muted">Proceso / Salida</dt><dd>{{ cfg.proc_res }} → {{ cfg.output }}</dd></div>
       </dl>
       <template #footer>

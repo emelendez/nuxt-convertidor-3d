@@ -1,0 +1,22 @@
+# worker/constraints.txt - limites de version (pip constraints) del worker.
+#
+# Funcion: scripts/setup.ps1 pasa este fichero con
+#   pip install -r worker/engines/<id>/<requirements> -c worker/constraints.txt
+# para que TODAS las instalaciones por motor resuelvan dentro de rangos
+# conocidos-compatibles. Son limites conservadores, NO pins exactos: el stack
+# CUDA no se puede verificar en la maquina de desarrollo actual.
+# Un fichero de constraints no instala nada por si mismo: solo acota las
+# versiones de lo que pidan los requirements de cada motor.
+#
+# Los pins exactos VERIFICADOS de cada instalacion buena quedan capturados
+# automaticamente en .cache/freeze-YYYYMMDD.txt (pip freeze al final de
+# setup.ps1); usarlos como referencia si en el futuro se quiere pinear.
+numpy>=1.26,<2.3
+torch>=2.4,<2.8
+diffusers>=0.30,<0.32
+transformers>=4.40,<5
+accelerate<2
+onnxruntime-directml>=1.18,<2
+opencv-python>=4.10,<5
+scenedetect>=0.6,<0.7
+huggingface_hub>=0.24,<1

@@ -1,0 +1,11 @@
+{
+  "manifest_version": 1,
+  "id": "stereo_fast",
+  "stage": "stereo",
+  "api_version": "1.x",
+  "label": "Rápido (warp DIBR)",
+  "description": "Forward-warp DIBR vectorizado en PyTorch con z-buffer; huecos rellenos por vecino más próximo por fila. El más rápido; artefactos leves en bordes con movimiento.",
+  "requires_compute": [],
+  "calibration_keys": { "stereo": "{kind}warp:{proc_res}" },
+  "cfg_schema": {}
+}

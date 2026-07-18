@@ -120,6 +120,32 @@ class FastStereo:
         out, _ = self._warp(img[None], disp[None], sign, max_disp_px)
         return out[0]
 
+    def warp_batch(self, frames: np.ndarray, depths: np.ndarray,
+                   sign: int) -> tuple[np.ndarray, np.ndarray]:
+        """Warp de UN ojo devolviendo la mascara de huecos (API para motores).
+
+        (N,H,W,3) uint8 + (N,H,W) [0..1] → (warpeado uint8, huecos bool).
+        La imagen sale con los huecos ya rellenos por vecino (como process);
+        la mascara permite a un motor sustituir ese relleno por otro mejor.
+        """
+        torch = self.torch
+        N, H, W, _ = frames.shape
+        max_disp_px = self.divergence / 100.0 * W / 2.0
+        out = np.empty_like(frames)
+        holes = np.empty((N, H, W), dtype=bool)
+        with torch.no_grad():
+            for i0 in range(0, N, _WARP_BATCH):
+                i1 = min(i0 + _WARP_BATCH, N)
+                imgs = torch.from_numpy(frames[i0:i1]).to(self.device)
+                d = torch.from_numpy(depths[i0:i1]).to(self.device).float()
+                if self.edge_dilation > 0:
+                    d = self._dilate_fg(d)
+                disp = (d - self.convergence) * max_disp_px
+                w, written = self._warp(imgs, disp, sign, max_disp_px)
+                out[i0:i1] = w.cpu().numpy()
+                holes[i0:i1] = (~written).cpu().numpy()
+        return out, holes
+
     def process(self, frames: np.ndarray, depths: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """(N,H,W,3) uint8 + (N,H,W) [0..1] → (izquierda, derecha) uint8."""
         torch = self.torch

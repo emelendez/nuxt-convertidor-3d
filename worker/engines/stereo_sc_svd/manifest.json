@@ -1,0 +1,21 @@
+{
+  "manifest_version": 1,
+  "id": "stereo_sc_svd",
+  "stage": "stereo",
+  "api_version": "1.x",
+  "label": "Calidad (StereoCrafter + SVD)",
+  "description": "Splatting + inpainting de desoclusiones por difusión de vídeo (StereoCrafter/SVD fine-tuned). La mejor calidad; requiere GPU NVIDIA y pesos gated de HuggingFace.",
+  "requires_compute": ["cuda"],
+  "requirements": "requirements.txt",
+  "weights": [
+    { "kind": "git", "url": "https://github.com/TencentARC/StereoCrafter", "commit": "e30707728bd2f52cec2de8630098a7ae4f95d27c", "dest": "StereoCrafter" },
+    { "kind": "hf-snapshot", "repo": "TencentARC/StereoCrafter", "dest": "checkpoints/StereoCrafter", "license": "non-commercial" },
+    { "kind": "hf-snapshot", "repo": "stabilityai/stable-video-diffusion-img2vid-xt-1-1", "dest": "checkpoints/stable-video-diffusion-img2vid-xt-1-1", "gated": true, "license": "stabilityai-community (no comercial)" }
+  ],
+  "calibration_keys": { "stereo": "inpaint:{proc_res}:{inpaint_steps}" },
+  "estimator": { "vram_gb": { "1080p": 10, "4k": 16 } },
+  "cfg_schema": {
+    "inpaint_steps": { "type": "integer", "default": 8, "min": 2, "max": 25 },
+    "inpaint_downscale": { "type": "boolean", "default": true }
+  }
+}
