@@ -37,7 +37,7 @@ async function copyUrl(u: string) {
         <span class="text-2xl">🎬</span>
         <div class="min-w-0">
           <h1 class="font-semibold leading-tight">Convertidor 3D</h1>
-          <p class="text-xs text-muted">2D → 3D SBS · LG 3D TV</p>
+          <p class="text-xs text-muted">2D → 3D SBS · cualquier TV 3D</p>
         </div>
         <HealthBadges class="ml-auto hidden sm:flex" />
         <!-- Acceso desde la red: solo el operador local ve las URLs (y el PIN) -->

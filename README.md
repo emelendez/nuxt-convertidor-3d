@@ -1,8 +1,8 @@
 # Convertidor 3D
 
 Webapp **100 % local** (sin nube, sin subir ficheros a terceros) que convierte películas
-MKV 2D (4K HEVC o 1080p) a **3D estereoscópico Side-by-Side** para televisores LG 3D
-pasivos, usando estimación de profundidad por IA.
+MKV 2D (4K HEVC o 1080p) a **3D estereoscópico Side-by-Side** para cualquier televisor 3D
+compatible con Side-by-Side, usando estimación de profundidad por IA.
 
 - **UI + servidor:** Nuxt 4 + Nuxt UI 4 sobre Nitro. Un único runtime Node sirve la
   interfaz y la API en `http://127.0.0.1:8765`.
@@ -40,10 +40,10 @@ pasivos, usando estimación de profundidad por IA.
 | Python | 3.10+ con venv (para el worker de IA) |
 | FFmpeg | build **full** (con `zscale`); `setup.ps1` lo instala en `tools/ffmpeg` |
 | GPU | NVIDIA (CUDA, recomendado) o cualquier GPU DX12 (DirectML); CPU como último recurso |
-| TV | LG 3D pasivo: activar el modo 3D manualmente (botón 3D → Side by Side) |
+| TV | Cualquier TV 3D (SBS): activar el modo 3D manualmente (botón 3D → Side by Side) |
 
-> Salida óptima para estas TVs: **Half-SBS 4K (3840×2160)**. El Full-SBS 4K excede el
-> decodificador de esos paneles y solo se ofrece con advertencia (PC/VR).
+> Salida óptima para la mayoría de TVs 3D: **Half-SBS 4K (3840×2160)**. El Full-SBS 4K
+> excede el decodificador de muchos paneles y solo se ofrece con advertencia (PC/VR).
 
 ## Instalación
 

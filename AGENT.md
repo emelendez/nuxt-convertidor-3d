@@ -6,7 +6,7 @@ Guia para agentes de IA que trabajen en este repositorio.
 
 Reescritura **hibrida** del Convertidor 3D: una webapp **100 % local** (sin nube,
 sin subida de ficheros) que convierte peliculas MKV 2D (4K HEVC o 1080p) a 3D
-estereoscopico Side-by-Side para televisores LG 3D pasivos.
+estereoscopico Side-by-Side para cualquier televisor 3D (Side-by-Side).
 
 - **UI + servidor: Nuxt 4 + Nuxt UI 4 sobre Nitro (Node/TypeScript).** Un unico
   runtime a la escucha (Node en 127.0.0.1:8765): sirve la SPA y expone la API.
@@ -308,9 +308,9 @@ tools/ffmpeg  .  models/   (assets pesados; env CONVERTIDOR3D_MODELS/DATA)
 - **FFmpeg** debe ser build **full** (con `zscale`) para el tone-mapping HDR->SDR.
   Va embebido en `tools/ffmpeg/bin` (el plugin de Nitro lo antepone al PATH y se
   hereda al worker Python).
-- **LG 3D pasivo:** el SBS se activa **manualmente** en la TV (boton 3D -> Side by
+- **TV 3D:** el SBS se activa **manualmente** en la TV (boton 3D -> Side by
   Side). Optimo: **Half-SBS 4K (3840x2160)**; Full-SBS 4K excede el decodificador
-  de esas TVs (solo con advertencia, para PC/VR). El flag Matroska `stereo_mode`
+  de muchas TV 3D (solo con advertencia, para PC/VR). El flag Matroska `stereo_mode`
   se escribe igualmente (ayuda en Kodi/Plex).
 
 ## Estado y pendientes

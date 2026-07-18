@@ -97,10 +97,10 @@ export const DEPTH_MODELS: Record<string, { label: string, license: string, come
   vda_l: { label: 'Large (382M)', license: 'CC-BY-NC-4.0', comercial: false },
 }
 export const OUTPUTS: Record<string, Record<string, unknown>> = {
-  hsbs_1080: { label: 'Half-SBS 1080p', res: '1920×1080', lg: true },
-  hsbs_4k: { label: 'Half-SBS 4K', res: '3840×2160', lg: true, recomendado_lg: true },
-  fsbs_1080: { label: 'Full-SBS 1080p', res: '3840×1080', lg: true },
-  fsbs_4k: { label: 'Full-SBS 4K', res: '7680×2160', lg: false },
+  hsbs_1080: { label: 'Half-SBS 1080p', res: '1920×1080', tv3d: true },
+  hsbs_4k: { label: 'Half-SBS 4K', res: '3840×2160', tv3d: true, recomendado: true },
+  fsbs_1080: { label: 'Full-SBS 1080p', res: '3840×1080', tv3d: true },
+  fsbs_4k: { label: 'Full-SBS 4K', res: '7680×2160', tv3d: false },
 }
 
 const DEPTH_ORDER = ['vda_s', 'vda_b', 'vda_l']
@@ -262,7 +262,7 @@ export function estimateOne(durationS: number, fps: number, gpu: GpuInfo | null,
 
   if (output === 'fsbs_4k' && procRes !== '4k') notes.push('Full-SBS 4K requiere procesar a 4K')
   if (output === 'hsbs_4k' && procRes === '1080p') notes.push('Salida 4K desde proceso 1080p: se reescala (calidad limitada)')
-  if (output === 'fsbs_4k') notes.push('⚠ 7680×2160 excede el decodificador de las TV LG 3D (uso PC/VR)')
+  if (output === 'fsbs_4k') notes.push('⚠ 7680×2160 excede el decodificador de muchas TV 3D (uso PC/VR)')
 
   if (gpu === null && compute !== null && (compute.kind === 'dml' || compute.kind === 'cpu')) {
     return estimateFallback(durationS, fps, compute, procRes, depthModel, mode, output, demoDurationS, cal, notes, engines)

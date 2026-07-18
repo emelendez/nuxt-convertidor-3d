@@ -71,10 +71,10 @@ DEPTH_MODELS = {
     "vda_l": {"label": "Large (382M)", "license": "CC-BY-NC-4.0", "comercial": False},
 }
 OUTPUTS = {
-    "hsbs_1080": {"label": "Half-SBS 1080p", "res": "1920×1080", "lg": True},
-    "hsbs_4k": {"label": "Half-SBS 4K", "res": "3840×2160", "lg": True, "recomendado_lg": True},
-    "fsbs_1080": {"label": "Full-SBS 1080p", "res": "3840×1080", "lg": True},
-    "fsbs_4k": {"label": "Full-SBS 4K", "res": "7680×2160", "lg": False},
+    "hsbs_1080": {"label": "Half-SBS 1080p", "res": "1920×1080", "tv3d": True},
+    "hsbs_4k": {"label": "Half-SBS 4K", "res": "3840×2160", "tv3d": True, "recomendado": True},
+    "fsbs_1080": {"label": "Full-SBS 1080p", "res": "3840×1080", "tv3d": True},
+    "fsbs_4k": {"label": "Full-SBS 4K", "res": "7680×2160", "tv3d": False},
 }
 
 
@@ -253,7 +253,7 @@ def estimate_one(duration_s: float, fps: float, gpu: GpuInfo | None,
     if output == "hsbs_4k" and proc_res == "1080p":
         notes.append("Salida 4K desde proceso 1080p: se reescala (calidad limitada)")
     if output == "fsbs_4k":
-        notes.append("⚠ 7680×2160 excede el decodificador de las TV LG 3D (uso PC/VR)")
+        notes.append("⚠ 7680×2160 excede el decodificador de muchas TV 3D (uso PC/VR)")
 
     # Backend sin CUDA → estimación específica (DirectML/CPU)
     if gpu is None and compute is not None and compute.kind in ("dml", "cpu"):

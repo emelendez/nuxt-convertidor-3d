@@ -47,7 +47,7 @@ const cfg = computed(() => store.cfg)
       icon="i-lucide-tv"
       color="neutral"
       variant="subtle"
-      title="Cómo verlo en tu LG 3D"
+      title="Cómo verlo en tu TV 3D"
       description="Copia el MKV a un USB (NTFS para >4 GB), reprodúcelo en la TV, pulsa el botón 3D del mando y elige Side by Side. Recomendado: Half-SBS 4K."
     />
   </div>

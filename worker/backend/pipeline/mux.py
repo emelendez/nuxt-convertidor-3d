@@ -2,8 +2,8 @@
 
 Detalle que ninguna herramienta del estado del arte hace bien (iw3 pierde
 subtítulos y capítulos): aquí se copian TODAS las pistas del MKV original.
-El flag Matroska stereo_mode no garantiza la auto-conmutación en TVs LG
-(activación manual con el botón 3D), pero ayuda en Kodi/Plex/PC.
+El flag Matroska stereo_mode no garantiza la conmutación automática en muchas
+TV 3D (a veces hay que activar el modo 3D a mano), pero ayuda en Kodi/Plex/PC.
 """
 from __future__ import annotations
 
