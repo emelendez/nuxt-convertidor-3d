@@ -26,8 +26,8 @@ const computeLabel = computed(() => {
     <UTooltip :text="h.components?.ffmpeg ? `Encoder: ${h.components?.encoder || '?'}` : 'Ejecuta setup.ps1'">
       <UBadge :color="h.components?.ffmpeg ? 'success' : 'error'" variant="subtle" label="FFmpeg" />
     </UTooltip>
-    <UTooltip :text="h.components?.depth === 'vda' ? 'Video Depth Anything (CUDA)' : h.components?.depth === 'onnx' ? 'Depth Anything V2 ONNX (DirectML/CPU)' : 'Faltan modelos'">
-      <UBadge :color="h.components?.depth ? 'success' : 'error'" variant="subtle" label="IA" />
+    <UTooltip :text="h.worker_installed === false ? 'Falta el worker de IA · instálalo: scripts\\setup.ps1 -Auto' : h.components?.depth === 'vda' ? 'Video Depth Anything (CUDA)' : h.components?.depth === 'onnx' ? 'Depth Anything V2 ONNX (DirectML/CPU)' : 'Faltan modelos'">
+      <UBadge :color="(h.worker_installed !== false && h.components?.depth) ? 'success' : 'error'" variant="subtle" label="IA" />
     </UTooltip>
   </div>
 </template>

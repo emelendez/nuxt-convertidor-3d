@@ -19,6 +19,11 @@
   -HQ      stereo_sc_svd (StereoCrafter; pesos SVD GATED: exige token HF)
   -All     todos los motores
 
+  -Auto    detecta la GPU y elige nivel automaticamente:
+           NVIDIA -> -AI (CUDA); si no -> -DML (DirectML/CPU). No activa -HQ (gated).
+  -SkipNode  omite npm ci + build (para instalar solo el worker, p.ej. desde
+             start.ps1 cuando el build ya esta hecho)
+
   -Yes     desatendido: sin prompts interactivos (CI / clon limpio)
 
 .NOTES
@@ -36,8 +41,10 @@ param(
   [switch]$DML,
   [switch]$HQ,
   [switch]$All,
+  [switch]$Auto,
   [string]$Engine = '',
   [switch]$Yes,
+  [switch]$SkipNode,
   [switch]$ListEngines
 )
 $ErrorActionPreference = 'Stop'
@@ -77,6 +84,17 @@ function Test-NvidiaGpu {
   return ($LASTEXITCODE -eq 0)
 }
 
+# Nombres de adaptadores de video que NO son NVIDIA (AMD/Intel/iGPU), solo para
+# informar en el modo -Auto. No necesita venv (WMI/CIM del SO).
+function Get-NonNvidiaGpuNames {
+  try {
+    $names = @(Get-CimInstance Win32_VideoController -ErrorAction Stop | ForEach-Object { $_.Name })
+  } catch {
+    $names = @()
+  }
+  return @($names | Where-Object { $_ -and ($_ -notmatch 'NVIDIA') })
+}
+
 $AllManifests = Get-EngineManifests
 
 if ($ListEngines) {
@@ -95,6 +113,19 @@ if ($ListEngines) {
 # ---- seleccion de motores ---------------------------------------------------
 $EngineIds = @()
 if ($Engine) { $EngineIds += ($Engine -split ',') | ForEach-Object { $_.Trim() } | Where-Object { $_ } }
+# -Auto: elegir nivel segun el hardware ANTES de expandir los alias. Sondeo sin
+# venv (nvidia-smi / Win32_VideoController). Nunca activa -HQ (SVD es gated).
+if ($Auto) {
+  if (Test-NvidiaGpu) {
+    Write-Host "Auto: GPU NVIDIA detectada -> nivel -AI (CUDA)" -ForegroundColor Cyan
+    $AI = $true
+  } else {
+    $others = Get-NonNvidiaGpuNames
+    if ($others.Count) { $desc = ($others -join ', ') } else { $desc = 'sin GPU dedicada' }
+    Write-Host ("Auto: sin NVIDIA (" + $desc + ") -> nivel -DML (DirectML/CPU)") -ForegroundColor Cyan
+    $DML = $true
+  }
+}
 if ($All) { $AI = $true; $DML = $true; $HQ = $true }
 if ($AI) { $EngineIds += @('depth_vda', 'stereo_fast', 'stereo_fast_telea') }
 if ($DML) { $EngineIds += @('depth_da2_onnx', 'stereo_fast', 'stereo_fast_telea') }
@@ -118,26 +149,30 @@ $Sibling = Join-Path (Split-Path -Parent $Root) 'convertidor-3d'
 Write-Host "== Convertidor 3D (Nuxt) - setup ==" -ForegroundColor Cyan
 
 # ---- Node + dependencias + build -------------------------------------------
-$node = Get-Command node -ErrorAction SilentlyContinue
-if (-not $node) { throw "Node.js no encontrado. Instala Node 20+ desde nodejs.org" }
-Write-Host ("Node " + (& node --version))
-if (Test-Path "$Root\package-lock.json") { $npmCmd = 'ci' } else { $npmCmd = 'install' }
-Write-Host ("Instalando dependencias Node (npm " + $npmCmd + ")...")
-& npm $npmCmd
-if ($LASTEXITCODE -ne 0) {
-  # EPERM/unlink transitorio tipico: OneDrive sincronizando o un node.exe
-  # residual bloqueando un binario nativo de node_modules. Un reintento tras
-  # una pausa lo resuelve casi siempre (cazado en instalacion real 2026-07-18).
-  Write-Host "npm fallo; reintentando en 10 s (bloqueo transitorio de ficheros?)..." -ForegroundColor Yellow
-  Start-Sleep -Seconds 10
+if ($SkipNode) {
+  Write-Host "SkipNode: se omiten Node y build (instalacion solo del worker)." -ForegroundColor Yellow
+} else {
+  $node = Get-Command node -ErrorAction SilentlyContinue
+  if (-not $node) { throw "Node.js no encontrado. Instala Node 20+ desde nodejs.org" }
+  Write-Host ("Node " + (& node --version))
+  if (Test-Path "$Root\package-lock.json") { $npmCmd = 'ci' } else { $npmCmd = 'install' }
+  Write-Host ("Instalando dependencias Node (npm " + $npmCmd + ")...")
   & npm $npmCmd
   if ($LASTEXITCODE -ne 0) {
-    throw "Fallo la instalacion de dependencias Node (2 intentos). Si el proyecto esta en OneDrive, pausa la sincronizacion y cierra procesos node.exe."
+    # EPERM/unlink transitorio tipico: OneDrive sincronizando o un node.exe
+    # residual bloqueando un binario nativo de node_modules. Un reintento tras
+    # una pausa lo resuelve casi siempre (cazado en instalacion real 2026-07-18).
+    Write-Host "npm fallo; reintentando en 10 s (bloqueo transitorio de ficheros?)..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 10
+    & npm $npmCmd
+    if ($LASTEXITCODE -ne 0) {
+      throw "Fallo la instalacion de dependencias Node (2 intentos). Si el proyecto esta en OneDrive, pausa la sincronizacion y cierra procesos node.exe."
+    }
   }
+  Write-Host "Compilando la app (npm run build)..."
+  & npm run build
+  if ($LASTEXITCODE -ne 0) { throw "Fallo el build de Nuxt" }
 }
-Write-Host "Compilando la app (npm run build)..."
-& npm run build
-if ($LASTEXITCODE -ne 0) { throw "Fallo el build de Nuxt" }
 
 # ---- FFmpeg embebido (tools\ffmpeg\bin) ------------------------------------
 $ffTarget = "$Root\tools\ffmpeg"

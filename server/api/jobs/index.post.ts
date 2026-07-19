@@ -2,12 +2,20 @@ import { isSimulate } from '../../utils/config'
 import { getCapabilities } from '../../utils/capabilities'
 import { manager } from '../../utils/jobs'
 import { probeFile } from '../../utils/probe'
+import { venvReady } from '../../utils/python'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event) || {}
   const kind = body.kind === 'demo' ? 'demo' : body.kind === 'full' ? 'full' : null
   if (!kind) throw createError({ statusCode: 400, statusMessage: 'kind debe ser demo o full' })
   if (!body.path) throw createError({ statusCode: 400, statusMessage: 'Falta la ruta del fichero' })
+
+  // Pre-flight: sin worker Python instalado el spawn fallaria (ENOENT) de forma
+  // ASINCRONA y el job quedaria en 'error' sin explicacion. Avisar aqui con un
+  // 400 accionable ANTES de encolar. (En simulacion no hay worker real.)
+  if (!isSimulate() && !venvReady()) {
+    throw createError({ statusCode: 400, statusMessage: 'El worker de IA no está instalado. Instálalo con scripts\\setup.ps1 -Auto (auto-detecta tu hardware) y reinicia.' })
+  }
 
   let info
   try {

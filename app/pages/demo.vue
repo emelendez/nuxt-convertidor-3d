@@ -84,6 +84,10 @@ function fmtTime(s: number) {
 }
 
 async function launch() {
+  if (!store.workerInstalled) {
+    toast.add({ title: 'Falta el worker de IA', description: 'Instálalo con scripts\\setup.ps1 -Auto y reinicia.', color: 'warning' })
+    return
+  }
   launching.value = true
   try {
     await api.createJob({
@@ -116,6 +120,14 @@ function pct(j: any) {
 
 <template>
   <div class="flex flex-col gap-6">
+    <UAlert
+      v-if="!store.workerInstalled"
+      icon="i-lucide-triangle-alert"
+      color="warning"
+      variant="subtle"
+      title="Falta el worker de IA"
+      description="Puedes previsualizar y planear, pero no generar el 3D. Instálalo (auto-detecta tu hardware) con scripts\setup.ps1 -Auto y reinicia."
+    />
     <UCard>
       <template #header><h2 class="font-semibold">3 · Demo de prueba</h2></template>
       <p class="text-sm text-muted mb-4">Convierte un fragmento corto con la configuración actual para juzgar la calidad antes de la película completa.</p>
@@ -166,7 +178,7 @@ function pct(j: any) {
         </UCarousel>
       </div>
       <template #footer>
-        <UButton color="primary" icon="i-lucide-play" :loading="launching" @click="launch">
+        <UButton color="primary" icon="i-lucide-play" :loading="launching" :disabled="!store.workerInstalled" @click="launch">
           Generar demo con la config actual
         </UButton>
       </template>

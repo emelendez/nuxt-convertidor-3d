@@ -69,6 +69,9 @@ export const useAppStore = defineStore('app', {
     // gobierna que acciones fisicamente locales se muestran (Explorer, etc.).
     isLocalClient: state => state.health?.client_is_local !== false,
     lanUrls: state => (state.health?.lan_urls || []) as string[],
+    // true hasta que /api/health diga lo contrario (no bloquear durante la
+    // carga); false = falta el worker de IA (.venv), no se puede generar 3D.
+    workerInstalled: state => state.health?.worker_installed !== false,
   },
   actions: {
     unlockStep(n: number) { this.maxStep = Math.max(this.maxStep, n) },

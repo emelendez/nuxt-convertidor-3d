@@ -9,6 +9,10 @@ onMounted(() => { if (!store.probe) navigateTo('/') })
 
 const launching = ref(false)
 async function launch() {
+  if (!store.workerInstalled) {
+    toast.add({ title: 'Falta el worker de IA', description: 'Instálalo con scripts\\setup.ps1 -Auto y reinicia.', color: 'warning' })
+    return
+  }
   launching.value = true
   try {
     await api.createJob({ kind: 'full', path: store.probe.path, cfg: store.cfg })
@@ -25,6 +29,14 @@ const cfg = computed(() => store.cfg)
 
 <template>
   <div class="flex flex-col gap-6">
+    <UAlert
+      v-if="!store.workerInstalled"
+      icon="i-lucide-triangle-alert"
+      color="warning"
+      variant="subtle"
+      title="Falta el worker de IA"
+      description="Sin él no se puede generar el 3D. Instálalo (auto-detecta tu hardware) con scripts\setup.ps1 -Auto y reinicia."
+    />
     <UCard>
       <template #header><h2 class="font-semibold">4 · Conversión completa</h2></template>
       <dl class="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
@@ -36,7 +48,7 @@ const cfg = computed(() => store.cfg)
       <template #footer>
         <div class="flex items-center justify-between gap-3 flex-wrap">
           <p class="text-xs text-muted">La conversión es reanudable: puedes cerrar la app y retomarla relanzando el mismo trabajo.</p>
-          <UButton color="primary" size="lg" icon="i-lucide-play" :loading="launching" @click="launch">
+          <UButton color="primary" size="lg" icon="i-lucide-play" :loading="launching" :disabled="!store.workerInstalled" @click="launch">
             Convertir película completa
           </UButton>
         </div>

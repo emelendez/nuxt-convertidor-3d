@@ -78,8 +78,15 @@ if (-not (Test-Path "$Root\.output\server\index.mjs")) {
 
 # 3) avisos no bloqueantes (worker / modelos)
 if (-not (Test-Path "$Root\.venv\Scripts\python.exe")) {
-  Write-Host "Aviso: falta el worker Python (.venv). La conversion real no estara" -ForegroundColor Yellow
-  Write-Host "       disponible. Instalalo con: scripts\setup.ps1 -AI   (o  -DML)" -ForegroundColor Yellow
+  Write-Host "Falta el worker Python (.venv). Instalandolo automaticamente segun el hardware..." -ForegroundColor Yellow
+  try {
+    & powershell -NoProfile -ExecutionPolicy Bypass -File "$PSScriptRoot\setup.ps1" -Auto -Yes -SkipNode
+    if ($LASTEXITCODE -ne 0) { throw "setup.ps1 devolvio codigo $LASTEXITCODE" }
+    Write-Host "Worker instalado. Continuando..." -ForegroundColor Green
+  } catch {
+    Write-Host ("AVISO: no se pudo instalar el worker automaticamente: " + $_.Exception.Message) -ForegroundColor Yellow
+    Write-Host "       La web arranca igual (previsualizar/planear). Instalalo luego con: scripts\setup.ps1 -Auto" -ForegroundColor Yellow
+  }
 }
 if (-not (Test-Path $ffbin)) {
   Write-Host "Aviso: falta FFmpeg embebido (tools\ffmpeg). Ejecuta scripts\setup.ps1" -ForegroundColor Yellow

@@ -99,7 +99,7 @@ async function nodeCapabilities(): Promise<Capabilities> {
   const compute: ComputeInfo = {
     kind: cuda ? 'cuda' : 'cpu',
     name: gpus[0]?.name || cpus()[0]?.model || 'CPU',
-    notes: cuda ? [] : ['Worker Python no instalado: no se puede sondear la GPU integrada (DirectML). Ejecuta scripts\\setup.ps1 -DML (o -AI) y reinicia.'],
+    notes: cuda ? [] : ['Worker Python no instalado: no se puede sondear la GPU integrada (DirectML). Ejecuta scripts\\setup.ps1 -Auto y reinicia.'],
     cpu_threads: cpuThreads, ram_gb: ramGb, amf: false,
   }
   return {
@@ -112,7 +112,7 @@ async function nodeCapabilities(): Promise<Capabilities> {
       stereo_fast: false, stereo_hq: false,
     },
     missing: {
-      depth: ['Worker Python no instalado (scripts\\setup.ps1 -AI o -DML)'],
+      depth: ['Worker Python no instalado (scripts\\setup.ps1 -Auto)'],
       stereo_hq: cuda ? [] : ['Requiere GPU NVIDIA con CUDA'],
     },
     gpus,
@@ -163,6 +163,10 @@ export async function getHealth(settings: unknown) {
     missing: cap.missing,
     gpus: cap.gpus,
     engines: cap.engines ?? [],
+    // El worker de IA (venv) esta instalado salvo en el heuristico 'node' (sin
+    // venv). En simulacion se reporta como presente. La UI deshabilita/guia
+    // "Generar demo"/"Convertir" cuando es false.
+    worker_installed: cap.source !== 'node',
     settings,
   }
 }
