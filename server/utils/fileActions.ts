@@ -5,7 +5,7 @@ import { stat } from 'node:fs/promises'
 import { Readable } from 'node:stream'
 import { previewsDir } from './config'
 import { sha1Hex } from './hash'
-import { execCapture, spawnDetached } from './proc'
+import { execCapture, spawn, spawnDetached } from './proc'
 
 // ── adapter de ficheros (node:fs confinado aqui) ────────────────────────────
 
@@ -112,4 +112,29 @@ export function ensurePreviewsDir(): string {
   const d = previewsDir()
   mkdirSync(d, { recursive: true })
   return d
+}
+
+// Extrae UN fotograma JPEG del vídeo de origen en el segundo `t` (seek rápido de
+// keyframe con -ss antes de -i). Devuelve el JPEG en un Buffer, o null si falla.
+// Espeja worker/backend/pipeline/decode.py::extract_thumbnails (scale 320).
+// OJO: NO usar execCapture aquí — fuerza encoding utf-8 y corrompe el binario;
+// hay que recoger el stdout como Buffer crudo con spawn.
+export function extractThumbnail(src: string, t: number, width = 320): Promise<Buffer | null> {
+  return new Promise((resolve) => {
+    const args = ['-nostdin', '-hide_banner', '-loglevel', 'error',
+      '-ss', Math.max(0, t).toFixed(3), '-i', src, '-frames:v', '1',
+      '-vf', `scale=${width}:-2`, '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', '5', 'pipe:1']
+    // stdin 'ignore' + -nostdin: doble escudo contra el deadlock de ffmpeg
+    // heredando el pipe de cancelación (ver AGENT.md). ffmpeg está en el PATH
+    // (plugin bootstrap antepone tools/ffmpeg/bin).
+    const p = spawn('ffmpeg', args, { stdio: ['ignore', 'pipe', 'ignore'] })
+    const chunks: Buffer[] = []
+    const kill = setTimeout(() => p.kill(), 15000)  // corta si se atasca
+    p.stdout!.on('data', (c: Buffer) => chunks.push(c))
+    p.on('error', () => { clearTimeout(kill); resolve(null) })
+    p.on('close', (code: number | null) => {
+      clearTimeout(kill)
+      resolve(code === 0 && chunks.length ? Buffer.concat(chunks) : null)
+    })
+  })
 }
